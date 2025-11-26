@@ -101,6 +101,11 @@
             background: #e53e3e;
         }
 
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
         .sort-controls {
             display: flex;
             gap: 10px;
@@ -178,7 +183,7 @@
             font-weight: 600;
         }
 
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
         }
 
@@ -186,6 +191,55 @@
             color: #a0aec0;
             font-size: 12px;
             font-weight: normal;
+        }
+
+        .clothes-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .clothes-selector select {
+            flex: 1;
+        }
+
+        .clothes-selector button {
+            padding: 10px 16px;
+        }
+
+        .selected-clothes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .clothe-tag {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .clothe-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .clothe-tag .remove:hover {
+            background: rgba(255,255,255,0.5);
         }
 
         .customers-grid {
@@ -244,6 +298,21 @@
 
         .info-value {
             color: #2d3748;
+            text-align: right;
+        }
+
+        .clothes-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: flex-end;
+        }
+
+        .clothes-list span {
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
         }
 
         .price {
@@ -331,12 +400,38 @@
                     <input type="text" id="customerName" placeholder="Customer name">
                 </div>
                 <div class="form-group">
-                    <label>Clothe *</label>
-                    <input type="text" id="customerClothe" required placeholder="Type of clothing">
+                    <label>Clothes *</label>
+                    <div class="clothes-selector">
+                        <select id="clotheDropdown">
+                            <option value="">Select or type below...</option>
+                            <option value="Shirt">Shirt</option>
+                            <option value="T-Shirt">T-Shirt</option>
+                            <option value="Trouser">Trouser</option>
+                            <option value="Jeans">Jeans</option>
+                            <option value="Hoodie">Hoodie</option>
+                            <option value="Jacket">Jacket</option>
+                            <option value="Sweater">Sweater</option>
+                            <option value="Shorts">Shorts</option>
+                            <option value="Dress">Dress</option>
+                            <option value="Suit">Suit</option>
+                        </select>
+                        <button type="button" class="btn-primary btn-small" onclick="addClotheFromDropdown()">Add</button>
+                    </div>
+                    <input type="text" id="customClothe" placeholder="Or type custom item and press Enter" onkeypress="handleClotheKeyPress(event)">
+                    <div id="selectedClothes" class="selected-clothes"></div>
                 </div>
                 <div class="form-group">
                     <label>Size *</label>
-                    <input type="text" id="customerSize" required placeholder="e.g., M, L, XL">
+                    <select id="customerSize" required>
+                        <option value="">Select size...</option>
+                        <option value="XS">XS</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="XXL">XXL</option>
+                        <option value="XXXL">XXXL</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Price *</label>
@@ -353,6 +448,56 @@
 
     <script>
         const API_URL = 'https://outfithuv-api-2.onrender.com';
+        let selectedClothes = [];
+
+        // Add clothe from dropdown
+        function addClotheFromDropdown() {
+            const dropdown = document.getElementById('clotheDropdown');
+            const value = dropdown.value.trim();
+            
+            if (value && !selectedClothes.includes(value)) {
+                selectedClothes.push(value);
+                updateClothesDisplay();
+                dropdown.value = '';
+            }
+        }
+
+        // Handle Enter key press in custom clothe input
+        function handleClotheKeyPress(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const input = document.getElementById('customClothe');
+                const value = input.value.trim();
+                
+                if (value && !selectedClothes.includes(value)) {
+                    selectedClothes.push(value);
+                    updateClothesDisplay();
+                    input.value = '';
+                }
+            }
+        }
+
+        // Remove clothe from selection
+        function removeClothe(clothe) {
+            selectedClothes = selectedClothes.filter(c => c !== clothe);
+            updateClothesDisplay();
+        }
+
+        // Update clothes display
+        function updateClothesDisplay() {
+            const container = document.getElementById('selectedClothes');
+            container.innerHTML = '';
+            
+            selectedClothes.forEach(clothe => {
+                const tag = document.createElement('div');
+                tag.className = 'clothe-tag';
+                tag.innerHTML = `
+                    ${clothe}
+                    <span class="remove" onclick="removeClothe('${clothe}')">×</span>
+                `;
+                container.appendChild(tag);
+            });
+        }
 
         // Load all customers
         async function loadCustomers() {
@@ -380,6 +525,10 @@
             container.innerHTML = '';
             
             for (const [id, customer] of Object.entries(data)) {
+                const clothesList = Array.isArray(customer.clothe) 
+                    ? customer.clothe.map(c => `<span>${c}</span>`).join('')
+                    : `<span>${customer.clothe}</span>`;
+                
                 const card = document.createElement('div');
                 card.className = 'customer-card';
                 card.innerHTML = `
@@ -389,8 +538,8 @@
                     </div>
                     <div class="customer-info">
                         <div class="info-row">
-                            <span class="info-label">Clothe:</span>
-                            <span class="info-value">${customer.clothe}</span>
+                            <span class="info-label">Clothes:</span>
+                            <span class="info-value clothes-list">${clothesList}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Size:</span>
@@ -421,7 +570,6 @@
                 const response = await fetch(`${API_URL}/sort?sort_by=price&order=${order}`);
                 const data = await response.json();
                 
-                // Convert array back to object format for display
                 const dataObj = {};
                 data.forEach((customer, index) => {
                     dataObj[`customer_${index}`] = customer;
@@ -439,14 +587,8 @@
             document.getElementById('customerForm').reset();
             document.getElementById('customerId').disabled = false;
             document.getElementById('isEditMode').value = 'false';
-            
-            // Make required fields required for create
-            document.getElementById('customerName').required = false;
-            document.getElementById('customerPhone').required = false;
-            document.getElementById('customerClothe').required = true;
-            document.getElementById('customerSize').required = true;
-            document.getElementById('customerPrice').required = true;
-            
+            selectedClothes = [];
+            updateClothesDisplay();
             document.getElementById('customerModal').classList.add('active');
         }
 
@@ -455,21 +597,15 @@
             document.getElementById('modalTitle').textContent = 'Edit Customer';
             document.getElementById('isEditMode').value = 'true';
             
-            // Populate form
             document.getElementById('customerId').value = customer.id;
             document.getElementById('customerId').disabled = true;
             document.getElementById('customerName').value = customer.name || '';
-            document.getElementById('customerClothe').value = customer.clothe;
             document.getElementById('customerSize').value = customer.size;
             document.getElementById('customerPrice').value = customer.price;
             document.getElementById('customerPhone').value = customer.phone || '';
             
-            // For edit mode, make all fields optional except what user wants to change
-            document.getElementById('customerName').required = false;
-            document.getElementById('customerPhone').required = false;
-            document.getElementById('customerClothe').required = false;
-            document.getElementById('customerSize').required = false;
-            document.getElementById('customerPrice').required = false;
+            selectedClothes = Array.isArray(customer.clothe) ? customer.clothe : [customer.clothe];
+            updateClothesDisplay();
             
             document.getElementById('customerModal').classList.add('active');
         }
@@ -477,27 +613,31 @@
         // Close modal
         function closeModal() {
             document.getElementById('customerModal').classList.remove('active');
+            selectedClothes = [];
         }
 
         // Handle form submission
         async function handleSubmit(event) {
             event.preventDefault();
             
+            if (selectedClothes.length === 0) {
+                showMessage('Please add at least one clothing item', 'error');
+                return;
+            }
+            
             const isEditMode = document.getElementById('isEditMode').value === 'true';
             const customerId = document.getElementById('customerId').value;
             
             if (isEditMode) {
-                // Update customer
                 const updateData = {};
                 
                 const name = document.getElementById('customerName').value;
-                const clothe = document.getElementById('customerClothe').value;
                 const size = document.getElementById('customerSize').value;
                 const price = document.getElementById('customerPrice').value;
                 const phone = document.getElementById('customerPhone').value;
                 
                 if (name) updateData.name = name;
-                if (clothe) updateData.clothe = clothe;
+                if (selectedClothes.length > 0) updateData.clothe = selectedClothes;
                 if (size) updateData.size = size;
                 if (price) updateData.price = parseFloat(price);
                 if (phone) updateData.phone = parseInt(phone);
@@ -523,10 +663,9 @@
                     showMessage('Error updating customer: ' + error.message, 'error');
                 }
             } else {
-                // Create new customer
                 const customerData = {
                     id: customerId,
-                    clothe: document.getElementById('customerClothe').value,
+                    clothe: selectedClothes,
                     size: document.getElementById('customerSize').value,
                     price: parseFloat(document.getElementById('customerPrice').value)
                 };
